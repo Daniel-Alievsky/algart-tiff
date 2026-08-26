@@ -100,7 +100,7 @@ public class JPEGCodec extends AWTCodec implements TiffCodec.Timing {
 //    private CodecService codecService;
 
     @Override
-    public byte[] compress(byte[] data, Options options) throws TiffException {
+    public byte[] compress(byte[] data, Options options) throws IOException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
         if (options.isFloatingPoint()) {
@@ -149,11 +149,7 @@ public class JPEGCodec extends AWTCodec implements TiffCodec.Timing {
         // (for comparison, the maximal quality in JPEG-2000 is Double.MAX_VALUE)
         final boolean enforceRGBFor3Channels = photometric == TagPhotometric.RGB;
         // - for 1 channel, this flag is ignored
-        try {
-            JPEGEncoding.writeJPEG(image, output, enforceRGBFor3Channels, jpegQuality);
-        } catch (final IOException e) {
-            throw new TiffException("Cannot compress JPEG data", e);
-        }
+        JPEGEncoding.writeJPEG(image, output, enforceRGBFor3Channels, jpegQuality);
         byte[] result = output.toByteArray();
         long t3 = timing ? System.nanoTime() : 0;
         timeBridge += t2 - t1;
@@ -162,7 +158,7 @@ public class JPEGCodec extends AWTCodec implements TiffCodec.Timing {
     }
 
     @Override
-    public byte[] decompress(byte[] data, Options options) throws TiffException {
+    public byte[] decompress(byte[] data, Options options) throws IOException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
         final JPEGCodecReport report = new JPEGCodecReport();
@@ -197,7 +193,7 @@ public class JPEGCodec extends AWTCodec implements TiffCodec.Timing {
             } catch (TiffException e) {
                 String s = jpegException.getMessage();
                 losslessException = new TiffException("Attempt to decode lossless JPEG failed: \"" +
-                        e.getMessage() + "\"; " +
+                        e.getMessage() + "\";\n" +
                         "the previous attempt to decode via the standard JPEG codec also failed " +
                         "with exception" + (s == null ? "" : " \"" + s + "\""), e);
                 losslessException.addSuppressed(jpegException);
@@ -209,8 +205,7 @@ public class JPEGCodec extends AWTCodec implements TiffCodec.Timing {
                 return tryLossless;
             }
             // zero length usually means that SOF3 (lossless JPEG) was not found
-            throw losslessException != null ? losslessException :
-                    jpegException instanceof TiffException e ? e : new TiffException(jpegException);
+            throw losslessException != null ? losslessException : jpegException;
         }
         if (imageData == null) {
             throw new TiffException("Cannot read JPEG image: unknown format");

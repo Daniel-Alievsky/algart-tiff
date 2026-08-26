@@ -31,7 +31,7 @@ import javax.imageio.stream.ImageInputStream;
 
 public class WebPCodec extends AWTCodec {
     @Override
-    protected ImageReader tryToFindImageReader(ImageInputStream stream) {
+    protected ImageReader tryToFindImageReader(ImageInputStream iis) {
         return new WebPImageReaderSpi().createReaderInstance(null);
     }
 }

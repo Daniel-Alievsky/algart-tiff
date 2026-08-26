@@ -358,7 +358,7 @@ public class TiffParser extends TiffReader {
     public boolean isValidHeader() {
         try {
             return checkHeader() != null;
-        } catch (final IOException e) {
+        } catch (IOException e) {
             return false;
         }
     }

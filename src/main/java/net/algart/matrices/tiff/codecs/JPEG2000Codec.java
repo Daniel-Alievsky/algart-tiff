@@ -35,6 +35,7 @@ import net.algart.matrices.tiff.tags.TagPhotometric;
 
 import javax.imageio.IIOImage;
 import javax.imageio.ImageWriteParam;
+import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.ImageOutputStream;
 import javax.imageio.stream.MemoryCacheImageInputStream;
 import javax.imageio.stream.MemoryCacheImageOutputStream;
@@ -251,9 +252,12 @@ public class JPEG2000Codec implements TiffCodec {
         }
     }
 
-    public byte[] compress(byte[] data, Options options) throws TiffException {
+    public byte[] compress(byte[] data, Options options) throws IOException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
+        if (data.length == 0) {
+            throw new IllegalArgumentException("Empty data array");
+        }
         if (options.isFloatingPoint()) {
             throw new TiffException("JPEG-2000 compression cannot be used for floating-point values");
         }
@@ -276,9 +280,6 @@ public class JPEG2000Codec implements TiffCodec {
             throw new TiffException("JPEG-2000 compression for " + samplesPerPixel + " channels for " +
                     "photometric interpretation " + photometric + " is not supported");
         }
-        if (data.length == 0) {
-            return data;
-        }
 
         if (!jpeg2000Options.isWritingSupported()) {
             throw new UnsupportedTiffFormatException("JPEG-2000 compression for this format is not supported");
@@ -293,7 +294,7 @@ public class JPEG2000Codec implements TiffCodec {
         // DataBuffer.TYPE_INT (so a single int is used to store all the
         // channels for a specific pixel).
 
-        final DataBuffer buffer = AWTCodec.toDataBuffer(data, jpeg2000Options);
+        final DataBuffer buffer = AWTCodec.toBandedDataBuffer(data, jpeg2000Options);
         final BufferedImage img = switch (bitsPerSample) {
             case 8 -> AWTImages.makeImage(samplesPerPixel, DataBuffer.TYPE_BYTE,
                     jpeg2000Options.getWidth(), jpeg2000Options.getHeight(), false, true, buffer,
@@ -317,10 +318,10 @@ public class JPEG2000Codec implements TiffCodec {
     private static void writeImageWithCorrectExceptions(
             ByteArrayOutputStream out,
             BufferedImage img,
-            JPEG2000Options jpeg2000Options) throws TiffException {
+            JPEG2000Options jpeg2000Options) throws IOException {
         try {
             writeImage(out, img, jpeg2000Options);
-        } catch (ThreadDeath | IOException e) {
+        } catch (ThreadDeath e) {
             // - ThreadDeath is still used in jai-imageio-jpeg2000 1.4.0
             throw new TiffException("Cannot compress JPEG-2000 data", e);
         }
@@ -334,7 +335,7 @@ public class JPEG2000Codec implements TiffCodec {
     // Below is a copy of equivalent SCIFIO method, not using jaiIIOService field
     @SuppressWarnings("removal")
     @Override
-    public byte[] decompress(byte[] data, Options options) throws TiffException {
+    public byte[] decompress(byte[] data, Options options) throws IOException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
         JPEG2000Options jpeg2000Options = new JPEG2000Options().setTo(options);
@@ -350,15 +351,11 @@ public class JPEG2000Codec implements TiffCodec {
             // raster = (WritableRaster) this.jaiIIOService.readRaster(bis,
             //        (JPEG2000CodecOptions) options);
             single = AWTImages.getPixelBytes(raster, jpeg2000Options.isLittleEndian());
-
             bis.close();
         } catch (ThreadDeath e) {
             // - still used in jai-imageio-jpeg2000 1.4.0
             throw new TiffException("Cannot decompress JPEG-2000 image: " +
                     "the thread has been terminated, see the log", e);
-        } catch (IOException e) {
-            throw new TiffException("Cannot decompress JPEG2000 image. Please " +
-                    "make sure that jai_imageio.jar is installed.", e);
         }
 //        catch (final ServiceException e) {
 //            throw new TiffException("Could not decompress JPEG2000 image. Please " +
@@ -389,48 +386,50 @@ public class JPEG2000Codec implements TiffCodec {
     }
 
     private static void writeImage(OutputStream out, BufferedImage img, JPEG2000Options options) throws IOException {
-        final ImageOutputStream ios = new MemoryCacheImageOutputStream(out);
-        // - Important: this codec is implemented for writing separate tiles, which SHOULD be not too large
-        // to be located in memory. For comparison, other codecs like DeflateCodec always work in memory.
-
         final J2KImageWriter writer = new J2KImageWriter(null);
-        writer.setOutput(ios);
+        try (final ImageOutputStream ios = new MemoryCacheImageOutputStream(out)) {
+            // - Important: this codec is implemented for writing separate tiles, which SHOULD be not too large
+            // to be located in memory. For comparison, other codecs like DeflateCodec always work in memory.
+            writer.setOutput(ios);
+            final String filter = options.lossless ? J2KImageWriteParam.FILTER_53
+                    : J2KImageWriteParam.FILTER_97;
 
-        final String filter = options.lossless ? J2KImageWriteParam.FILTER_53
-                : J2KImageWriteParam.FILTER_97;
-
-        final IIOImage iioImage = new IIOImage(img, null, null);
-        final J2KImageWriteParam param = (J2KImageWriteParam) writer
-                .getDefaultWriteParam();
-        param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-        param.setCompressionType("JPEG2000");
-        param.setLossless(options.lossless);
-        param.setFilter(filter);
-        param.setWriteCodeStreamOnly(!options.writeMetadata);
-        // - thanks ChatGPT: important addition (5.05.2025)
-        param.setCodeBlockSize(options.getCodeBlockSize());
-        param.setEncodingRate(options.compressionQuality());
+            final IIOImage iioImage = new IIOImage(img, null, null);
+            final J2KImageWriteParam param = (J2KImageWriteParam) writer
+                    .getDefaultWriteParam();
+            param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+            param.setCompressionType("JPEG2000");
+            param.setLossless(options.lossless);
+            param.setFilter(filter);
+            param.setWriteCodeStreamOnly(!options.writeMetadata);
+            // - thanks ChatGPT: important addition (5.05.2025)
+            param.setCodeBlockSize(options.getCodeBlockSize());
+            param.setEncodingRate(options.compressionQuality());
 //      TIFF provides its own tile subsystem
 //        if (options.tileWidth > 0 && options.tileHeight > 0) {
 //            param.setTiling(options.tileWidth, options.tileHeight,
 //                    options.tileGridXOffset, options.tileGridYOffset);
 //        }
-        if (options.numberOfDecompositionLevels != null) {
-            param.setNumDecompositionLevels(options.numberOfDecompositionLevels);
+            if (options.numberOfDecompositionLevels != null) {
+                param.setNumDecompositionLevels(options.numberOfDecompositionLevels);
+            }
+            writer.write(null, iioImage, param);
+        } finally {
+            writer.dispose();
         }
-        writer.write(null, iioImage, param);
-        ios.close();
     }
 
-    private static Raster readRaster(final InputStream in, final JPEG2000Options options) throws IOException {
+    private static Raster readRaster(InputStream in, JPEG2000Options options) throws IOException {
         final J2KImageReader reader = new J2KImageReader(null);
-        final MemoryCacheImageInputStream mciis = new MemoryCacheImageInputStream(in);
-        reader.setInput(mciis, false, true);
-        final J2KImageReadParam param = (J2KImageReadParam) reader.getDefaultReadParam();
-        if (options.resolution != null) {
-            param.setResolution(options.resolution);
+        try (final ImageInputStream iis = new MemoryCacheImageInputStream(in)) {
+            reader.setInput(iis, false, true);
+            final J2KImageReadParam param = (J2KImageReadParam) reader.getDefaultReadParam();
+            if (options.resolution != null) {
+                param.setResolution(options.resolution);
+            }
+            return reader.readRaster(0, param);
+        } finally {
+            reader.dispose();
         }
-        return reader.readRaster(0, param);
     }
-
 }

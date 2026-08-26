@@ -2,7 +2,7 @@
   <configuration default="false" name="LabelSmallObjectsDemo" type="Application" factoryName="Application" nameIsGenerated="true">
     <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.demo.misc.LabelSmallObjectsDemo" />
     <module name="algart-tiff" />
-    <option name="PROGRAM_PARAMETERS" value="src/test/resources/demo/images/objects_sample.jpg /tmp/objects_labels.tiff 0.3 100" />
+    <option name="PROGRAM_PARAMETERS" value="src/test/resources/demo/images/objects_sample.jpeg /tmp/objects_labels.tiff 0.3 100" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="net.algart.matrices.tiff.demo.misc.*" />

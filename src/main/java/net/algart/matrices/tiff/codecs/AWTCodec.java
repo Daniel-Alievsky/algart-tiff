@@ -31,11 +31,15 @@ import net.algart.matrices.tiff.awt.AWTImages;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReadParam;
 import javax.imageio.ImageReader;
+import javax.imageio.ImageWriter;
 import javax.imageio.stream.ImageInputStream;
+import javax.imageio.stream.ImageOutputStream;
 import javax.imageio.stream.MemoryCacheImageInputStream;
+import javax.imageio.stream.MemoryCacheImageOutputStream;
 import java.awt.*;
 import java.awt.image.*;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Iterator;
@@ -46,45 +50,87 @@ public class AWTCodec implements TiffCodec {
     // - should be true for normal processing some old-style JPEG files
 
     @Override
-    public byte[] compress(byte[] data, Options options) throws TiffException {
+    public byte[] compress(byte[] data, Options options) throws IOException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
-        throw new UnsupportedTiffFormatException("Compression is not supported (" +
-                options.getCompression() + ")");
+        if (data.length == 0) {
+            throw new IllegalArgumentException("Empty data array");
+        }
+        final int bitsPerSample = options.getNormalizedBitsPerSample();
+        final int samplesPerPixel = options.getSamplesPerPixel();
+        final DataBuffer buffer = AWTCodec.toBandedDataBuffer(data, options);
+        final BufferedImage image = switch (bitsPerSample) {
+            case 8 -> AWTImages.makeImage(samplesPerPixel, DataBuffer.TYPE_BYTE,
+                    options.getWidth(), options.getHeight(), false, true, buffer);
+            case 16 -> AWTImages.makeImage(samplesPerPixel, DataBuffer.TYPE_USHORT,
+                    options.getWidth(), options.getHeight(),
+                    false, true,
+                    buffer);
+            default -> throw new TiffException("Compression for " + bitsPerSample + "-bit samples is not supported");
+            // - Should be checked also in toDataBuffer
+        };
+        final ByteArrayOutputStream output = new ByteArrayOutputStream();
+        final ImageWriter imageWriter = tryToFindImageWriter(options);
+        if (imageWriter == null) {
+            throw new UnsupportedTiffFormatException("Compression" +
+                    (options.getCompression() == null ? "" : " \"" + options.getCompression().prettyName() + "\"") +
+                    " is not supported");
+        }
+        try (ImageOutputStream ios = new MemoryCacheImageOutputStream(output)) {
+            // - Important: this codec is implemented for writing separate tiles, which SHOULD be not too large
+            // to be located in memory. For comparison, other codecs like DeflateCodec always work in memory.
+            try {
+                imageWriter.write(image);
+            } finally {
+                imageWriter.dispose();
+            }
+        }
+        return output.toByteArray();
     }
 
     @Override
-    public byte[] decompress(byte[] data, Options options) throws TiffException {
+    public byte[] decompress(byte[] data, Options options) throws IOException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
-        final byte[][] pixelBytes;
+        if (data.length == 0) {
+            throw new IllegalArgumentException("Empty data array");
+        }
         final InputStream input = new ByteArrayInputStream(data);
         boolean littleEndian = options.isLittleEndian();
-        final ImageInputStream stream = new MemoryCacheImageInputStream(input);
-        // - instead of createImageInputStream, which creates temporary files on disk
-        final ImageReader reader = tryToFindImageReader(stream);
-        if (reader == null) {
-            throw new TiffException("Cannot read image: unknown format (" + options.getCompression() + ")");
+        final BufferedImage image;
+        try (final ImageInputStream iis = new MemoryCacheImageInputStream(input)) {
+            // - instead of createImageInputStream, which creates temporary files on disk;
+            // we don't use try-with-resources to avoid necessity to catch close()
+            final ImageReader reader = tryToFindImageReader(iis);
+            if (reader == null) {
+                throw new TiffException("Cannot read image: unknown format (" + options.getCompression() + ")");
+            }
+            reader.setInput(iis, true, true);
+            final ImageReadParam param = buildReadParameters(options, reader);
+            try {
+                image = reader.read(0, param);
+            } finally {
+                reader.dispose();
+            }
         }
-        reader.setInput(stream, true, true);
-        final ImageReadParam param = buildReadParameters(options, reader);
-        final int imageDimX, imageDimY;
-        try {
-            final BufferedImage image = reader.read(0, param);
-            imageDimX = image.getWidth();
-            imageDimY = image.getHeight();
-            pixelBytes = AWTImages.getImagePixelBytes(image, littleEndian);
-        } catch (IOException e) {
-            throw new TiffException("Cannot decompress image", e);
-        } finally {
-            reader.dispose();
-        }
-        return toDecodedData(pixelBytes, imageDimX, imageDimY, options.isInterleaved());
+        final byte[][] pixelBytes = AWTImages.getImagePixelBytes(image, littleEndian);
+        return toDecodedData(pixelBytes, image, options.isInterleaved());
     }
 
-    protected ImageReader tryToFindImageReader(ImageInputStream stream) {
-        Iterator<ImageReader> readers = ImageIO.getImageReaders(stream);
+    protected ImageReader tryToFindImageReader(ImageInputStream iis) {
+        Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
         return readers.hasNext() ? readers.next() : null;
+    }
+
+    /**
+     * Default implementation returns {@code null}, that leads to throwing {@link IOException}
+     * "Compression is not supported".
+     *
+     * @param options options to be used during decompression.
+     * @return an image writer used by this codec for compression.
+     */
+    protected ImageWriter tryToFindImageWriter(Options options) {
+        return null;
     }
 
     public static ImageReadParam buildReadParameters(Options options, ImageReader reader) {
@@ -102,55 +148,8 @@ public class AWTCodec implements TiffCodec {
         return param;
     }
 
-    static DataBuffer toDataBuffer(byte[] data, Options options) throws TiffException {
-        Objects.requireNonNull(data, "Null data");
-        Objects.requireNonNull(options, "Null codec options");
-        final int bitsPerSample = options.getNormalizedBitsPerSample();
-        if (bitsPerSample != 8 && bitsPerSample != 16) {
-            throw new TiffException("Compression for " + bitsPerSample +
-                    "-bit samples is not supported (only unsigned 8/16-bit samples allowed)");
-            // Note: jai-imageio.jpeg2000 1.4.0 does not work correctly with 32-bit samples
-            // due to integer bit-shift overflow (1 << ntdepth[0]) in calcMixedBitDepths and other jai-imageio methods
-        }
-        final int samplesPerPixel = options.getSamplesPerPixel();
-        final boolean interleaved = options.isInterleaved();
-        final boolean littleEndian = options.isLittleEndian();
-        final int numberOfPixels = Math.multiplyExact(options.getWidth(), options.getHeight());
-        if (bitsPerSample == 8) {
-            final byte[][] result = new byte[samplesPerPixel][numberOfPixels];
-            if (interleaved) {
-                for (int next = 0, q = 0; q < numberOfPixels; q++) {
-                    for (int c = 0; c < samplesPerPixel; c++) {
-                        result[c][q] = data[next++];
-                    }
-                }
-            } else {
-                for (int c = 0; c < samplesPerPixel; c++) {
-                    System.arraycopy(data, c * numberOfPixels, result[c], 0, numberOfPixels);
-                }
-            }
-            return new DataBufferByte(result, numberOfPixels);
-        } else {
-            final short[][] result = new short[samplesPerPixel][numberOfPixels];
-            if (interleaved) {
-                for (int next = 0, q = 0; q < numberOfPixels; q++) {
-                    for (int c = 0; c < samplesPerPixel; c++) {
-                        // assert toShort(data, next, false) == Bytes.toShort(data, next, 2, false);
-                        // assert toShort(data, next, true) == Bytes.toShort(data, next, 2, true);
-                        result[c][q] = toShort(data, next, littleEndian);
-                        next += 2;
-                    }
-                }
-            } else {
-                for (int next = 0, c = 0; c < samplesPerPixel; c++) {
-                    for (int q = 0; q < numberOfPixels; q++) {
-                        result[c][q] = toShort(data, next, littleEndian);
-                        next += 2;
-                    }
-                }
-            }
-            return new DataBufferUShort(result, numberOfPixels);
-        }
+    public static byte[] toDecodedData(byte[][] pixelBytes, BufferedImage image, boolean interleaved) {
+        return toDecodedData(pixelBytes, image.getWidth(), image.getHeight(), interleaved);
     }
 
     public static byte[] toDecodedData(byte[][] pixelBytes, Raster raster, boolean interleaved) {
@@ -226,6 +225,55 @@ public class AWTCodec implements TiffCodec {
         return (short) (littleEndian ?
                 (src[srcPos] & 0xFF) | ((src[srcPos + 1] & 0xFF) << 8) :
                 ((src[srcPos] & 0xFF) << 8) | (src[srcPos + 1] & 0xFF));
+    }
+
+    static DataBuffer toBandedDataBuffer(byte[] data, Options options) throws TiffException {
+        Objects.requireNonNull(data, "Null data");
+        Objects.requireNonNull(options, "Null codec options");
+        final int bitsPerSample = options.getNormalizedBitsPerSample();
+        if (bitsPerSample != 8 && bitsPerSample != 16) {
+            throw new TiffException("Compression for " + bitsPerSample +
+                    "-bit samples is not supported (only unsigned 8/16-bit samples allowed)");
+        }
+        final int samplesPerPixel = options.getSamplesPerPixel();
+        final boolean interleaved = options.isInterleaved();
+        final boolean littleEndian = options.isLittleEndian();
+        final int numberOfPixels = Math.multiplyExact(options.getWidth(), options.getHeight());
+        if (bitsPerSample == 8) {
+            final byte[][] result = new byte[samplesPerPixel][numberOfPixels];
+            if (interleaved) {
+                for (int next = 0, q = 0; q < numberOfPixels; q++) {
+                    for (int c = 0; c < samplesPerPixel; c++) {
+                        result[c][q] = data[next++];
+                    }
+                }
+            } else {
+                for (int c = 0; c < samplesPerPixel; c++) {
+                    System.arraycopy(data, c * numberOfPixels, result[c], 0, numberOfPixels);
+                }
+            }
+            return new DataBufferByte(result, numberOfPixels);
+        } else {
+            final short[][] result = new short[samplesPerPixel][numberOfPixels];
+            if (interleaved) {
+                for (int next = 0, q = 0; q < numberOfPixels; q++) {
+                    for (int c = 0; c < samplesPerPixel; c++) {
+                        // assert toShort(data, next, false) == Bytes.toShort(data, next, 2, false);
+                        // assert toShort(data, next, true) == Bytes.toShort(data, next, 2, true);
+                        result[c][q] = toShort(data, next, littleEndian);
+                        next += 2;
+                    }
+                }
+            } else {
+                for (int next = 0, c = 0; c < samplesPerPixel; c++) {
+                    for (int q = 0; q < numberOfPixels; q++) {
+                        result[c][q] = toShort(data, next, littleEndian);
+                        next += 2;
+                    }
+                }
+            }
+            return new DataBufferUShort(result, numberOfPixels);
+        }
     }
 
     // Deprecated, probably will be replaced with JArrays.arrayToBytes

@@ -32,6 +32,7 @@ import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagPhotometric;
 import net.algart.matrices.tiff.tiles.TiffTile;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteOrder;
 import java.util.Arrays;
@@ -557,21 +558,21 @@ public interface TiffCodec {
      * Compresses a block of data.
      *
      * @param data    The data to be compressed.
-     * @param options Options to be used during compression, if appropriate.
+     * @param options options to be used during compression.
      * @return The compressed data.
-     * @throws TiffException        if input is not a compressed data block of the appropriate type.
+     * @throws IOException          if input is not a compressed data block of the appropriate type.
      * @throws NullPointerException if one of the arguments is {@code null}.
      */
-    byte[] compress(byte[] data, Options options) throws TiffException;
+    byte[] compress(byte[] data, Options options) throws IOException;
 
     /**
      * Decompresses a block of data.
      *
      * @param data    the data to be decompressed
-     * @param options Options to be used during decompression.
+     * @param options options to be used during decompression.
      * @return the decompressed data.
-     * @throws TiffException        if data is not valid.
+     * @throws IOException          if data is not valid.
      * @throws NullPointerException if one of the arguments is {@code null}.
      */
-    byte[] decompress(byte[] data, Options options) throws TiffException;
+    byte[] decompress(byte[] data, Options options) throws IOException;
 }

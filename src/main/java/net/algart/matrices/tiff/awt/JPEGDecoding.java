@@ -150,50 +150,52 @@ public class JPEGDecoding {
             TagPhotometric declaredColorSpace,
             int numberOfChannels,
             boolean littleEndian) throws IOException {
-        final ImageInputStream stream = USE_MEMORY_CACHE ?
+        try (final ImageInputStream iis = USE_MEMORY_CACHE ?
                 new MemoryCacheImageInputStream(in) :
-                ImageIO.createImageInputStream(in);
-        final ImageReader reader = tryToFindImageReader(stream);
-        if (reader == null) {
-            return null;
-        }
-        final ImageReadParam param = reader.getDefaultReadParam();
-        reader.setInput(stream, true, true);
-        if (sizes != null) {
-            param.setSourceRegion(new Rectangle(0, 0, sizes.width, sizes.height));
-        }
-        try {
-            final IIOMetadata metadata = retrieveMetadata(reader);
-            final String colorSpace = tryToFindColorSpace(metadata);
-            Raster raster = null;
-            byte[][] pixelBytes = null;
-            if (isDirectReadingYCbCrRasterNecessary(colorSpace, declaredColorSpace, numberOfChannels)) {
-                // - AWT recognizes JPEG in the byte stream as YCbCr, but the declared color space
-                // (photometric interpretation) is RGB:
-                // we should use the readRaster() method to avoid conversion to RGB performed by the image.read() call
-                raster = reader.readRaster(0, param);
-                final Object pixels = AWTImages.getPixels(raster);
-                pixelBytes = AWTImages.tryDirectPixelToBytes(pixels);
-                // - mostly probable that the pixel data is stored by AWT as byte[], and then the getPixels() method
-                // has separated them into byte[][]: we just use them;
-                // if not (very improbable: for example, AWT prefers returning RBBA packed into int[]),
-                // the method tryDirectPixelToBytes() will return null, and we will switch
-                // to a usual reader.read() below (better than nothing)
-                LOG.log(LOG_COLOR_SPACE_MISMATCH ? System.Logger.Level.INFO : System.Logger.Level.TRACE,
-                        "RGB photometric interpretation with %s color space in JPEG: reading Raster%s".formatted(
-                                colorSpace, (pixelBytes != null ? "" : " (failed)")));
+                ImageIO.createImageInputStream(in)) {
+            final ImageReader reader = tryToFindImageReader(iis);
+            if (reader == null) {
+                return null;
             }
-            final boolean basedOnBufferedImage = pixelBytes == null;
-            if (basedOnBufferedImage) {
-                // - mostly probable branch: when possible, we prefer using the read() method
-                // as the most popular, stable and high-performance method for reading JPEG images.
-                final BufferedImage image = reader.read(0, param);
-                raster = image.getRaster();
-                pixelBytes = AWTImages.getImagePixelBytes(image, littleEndian);
+            final ImageReadParam param = reader.getDefaultReadParam();
+            reader.setInput(iis, true, true);
+            if (sizes != null) {
+                param.setSourceRegion(new Rectangle(0, 0, sizes.width, sizes.height));
             }
-            return new ImageData(metadata, raster, pixelBytes, colorSpace, basedOnBufferedImage);
-        } finally {
-            reader.dispose();
+            try {
+                final IIOMetadata metadata = retrieveMetadata(reader);
+                final String colorSpace = tryToFindColorSpace(metadata);
+                Raster raster = null;
+                byte[][] pixelBytes = null;
+                if (isDirectReadingYCbCrRasterNecessary(colorSpace, declaredColorSpace, numberOfChannels)) {
+                    // - AWT recognizes JPEG in the byte stream as YCbCr, but the declared color space
+                    // (photometric interpretation) is RGB:
+                    // we should use the readRaster() method to avoid conversion
+                    // to RGB performed by the image.read() call
+                    raster = reader.readRaster(0, param);
+                    final Object pixels = AWTImages.getPixels(raster);
+                    pixelBytes = AWTImages.tryDirectPixelToBytes(pixels);
+                    // - mostly probable that the pixel data is stored by AWT as byte[],
+                    // and then the getPixels() method has separated them into byte[][]: we just use them;
+                    // if not (very improbable: for example, AWT prefers returning RBBA packed into int[]),
+                    // the method tryDirectPixelToBytes() will return null, and we will switch
+                    // to a usual reader.read() below (better than nothing)
+                    LOG.log(LOG_COLOR_SPACE_MISMATCH ? System.Logger.Level.INFO : System.Logger.Level.TRACE,
+                            "RGB photometric interpretation with %s color space in JPEG: reading Raster%s".formatted(
+                                    colorSpace, (pixelBytes != null ? "" : " (failed)")));
+                }
+                final boolean basedOnBufferedImage = pixelBytes == null;
+                if (basedOnBufferedImage) {
+                    // - mostly probable branch: when possible, we prefer using the read() method
+                    // as the most popular, stable and high-performance method for reading JPEG images.
+                    final BufferedImage image = reader.read(0, param);
+                    raster = image.getRaster();
+                    pixelBytes = AWTImages.getImagePixelBytes(image, littleEndian);
+                }
+                return new ImageData(metadata, raster, pixelBytes, colorSpace, basedOnBufferedImage);
+            } finally {
+                reader.dispose();
+            }
         }
     }
 

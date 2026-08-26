@@ -1266,7 +1266,14 @@ public non-sealed class TiffReader extends TiffIO {
                 timing.setTiming(BUILT_IN_TIMING && LOGGABLE_DEBUG);
                 timing.resetTiming();
             }
-            byte[] decodedData = codec.decompress(encodedData, options);
+            byte[] decodedData;
+            try {
+                decodedData = codec.decompress(encodedData, options);
+            } catch (IOException e) {
+                throw e instanceof TiffException exception ?
+                        exception :
+                        new TiffException("Cannot decompress data", e);
+            }
             if (TEST_TOO_SHORT_BROKEN_UNCOMPRESSED_DATA) {
                 decodedData = Arrays.copyOf(decodedData, new Random().nextInt(decodedData.length / 5));
             }

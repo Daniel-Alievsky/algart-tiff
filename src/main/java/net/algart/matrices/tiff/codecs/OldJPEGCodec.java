@@ -111,12 +111,12 @@ public class OldJPEGCodec implements TiffCodec {
      * But this is better than nothing.
      */
     @Override
-    public byte[] compress(byte[] data, Options options) throws TiffException {
+    public byte[] compress(byte[] data, Options options) throws IOException {
         return new JPEGCodec().compress(data, options);
     }
 
     @Override
-    public byte[] decompress(byte[] data, Options options) throws TiffException {
+    public byte[] decompress(byte[] data, Options options) throws IOException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
         TiffIFD ifd = options.getIfd();
@@ -129,18 +129,14 @@ public class OldJPEGCodec implements TiffCodec {
         }
         final DataHandle<?> stream = reader.stream();
         final Object fileLock = reader.fileLock();
-        try {
-            final OldJPEGCodecReport report = new OldJPEGCodecReport();
-            byte[] jpeg;
-            synchronized (fileLock) {
-                jpeg = tryBuildCompleteJPEG(data, ifd, stream, options, report);
-            }
-            final byte[] result = new JPEGCodec().decompress(jpeg, options);
-            options.setReport(report);
-            return result;
-        } catch (IOException e) {
-            throw new TiffException("Cannot decode old-style JPEG: " + e.getMessage(), e);
+        final OldJPEGCodecReport report = new OldJPEGCodecReport();
+        byte[] jpeg;
+        synchronized (fileLock) {
+            jpeg = tryBuildCompleteJPEG(data, ifd, stream, options, report);
         }
+        final byte[] result = new JPEGCodec().decompress(jpeg, options);
+        options.setReport(report);
+        return result;
     }
 
     private static byte[] tryBuildCompleteJPEG(
@@ -200,7 +196,7 @@ public class OldJPEGCodec implements TiffCodec {
                         throw new TiffException(
                                 "Cannot decode old-style JPEG: " + (interchange == null ?
                                         "TIFF tag " + Tags.prettyName(Tags.OLD_JPEG_INTERCHANGE_FORMAT_LENGTH) +
-                                        " is missing, JPEGInterchangeFormat cannot be decoded" :
+                                                " is missing, JPEGInterchangeFormat cannot be decoded" :
                                         "JPEGInterchangeFormat does not start with a marker"));
                     }
                 }

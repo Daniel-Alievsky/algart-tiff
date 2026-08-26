@@ -96,7 +96,7 @@ public class LZWCodecTiff6Only implements TiffCodec {
             0x1f, 0x3f, 0x7f};
 
     @Override
-    public byte[] compress(byte[] data, Options options) throws TiffException {
+    public byte[] compress(byte[] data, Options options) throws IOException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
         if (data.length == 0) {
@@ -248,16 +248,11 @@ public class LZWCodecTiff6Only implements TiffCodec {
      * {@link Options#getMaxUnpackedSizeInBytes()}.
      */
     @Override
-    public byte[] decompress(byte[] data, Options options) throws TiffException {
+    public byte[] decompress(byte[] data, Options options) throws IOException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
-        try {
-            try (DataHandle<?> handle = new BytesHandle(new BytesLocation(data))) {
-                return decompress(handle, options);
-            }
-        } catch (IOException e) {
-            throw e instanceof TiffException tiffException ? tiffException : new TiffException(e);
-            // - last variant is very improbable
+        try (DataHandle<?> handle = new BytesHandle(new BytesLocation(data))) {
+            return decompress(handle, options);
         }
     }
 

@@ -1392,7 +1392,14 @@ public non-sealed class TiffWriter extends TiffIO {
                 timing.setTiming(BUILT_IN_TIMING && LOGGABLE_DEBUG);
                 timing.resetTiming();
             }
-            final byte[] encodedData = codec.compress(data, options);
+            final byte[] encodedData;
+            try {
+                encodedData = codec.compress(data, options);
+            } catch (IOException e) {
+                throw e instanceof TiffException exception ?
+                        exception :
+                        new TiffException("Cannot compress data", e);
+            }
             setLastCodecReport(options.getReport());
             tile.setEncodedData(encodedData);
             tile.setReport(options.getReport());

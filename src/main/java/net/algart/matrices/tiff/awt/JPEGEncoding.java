@@ -50,34 +50,34 @@ public class JPEGEncoding {
         Objects.requireNonNull(out, "Null output stream");
         // - note: declaredColorSpace can be also BLACK_IS_ZERO, for example, for 1-channel JPEG;
         // null is also allowed, but very improbable
-        final ImageOutputStream ios = JPEGDecoding.USE_MEMORY_CACHE ?
+        try (final ImageOutputStream ios = JPEGDecoding.USE_MEMORY_CACHE ?
                 new MemoryCacheImageOutputStream(out) :
-                ImageIO.createImageOutputStream(out);
+                ImageIO.createImageOutputStream(out)) {
+            final ImageWriter jpegWriter = getJPEGWriter();
+            jpegWriter.setOutput(ios);
 
-        final ImageWriter jpegWriter = getJPEGWriter();
-        jpegWriter.setOutput(ios);
+            final ImageWriteParam writeParam = jpegWriter.getDefaultWriteParam();
+            writeParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+            writeParam.setCompressionType("JPEG");
+            writeParam.setCompressionQuality((float) quality);
+            final ImageTypeSpecifier imageTypeSpecifier = new ImageTypeSpecifier(image);
+            if (enforceRGBFor3Channels) {
+                writeParam.setDestinationType(imageTypeSpecifier);
+                // - Important! It informs getDefaultImageMetadata to add Adobe and SOF markers
+                // that are detected by JPEGImageWriter and leads to correct outCsType = JPEG.JCS_RGB
+            }
+            final IIOMetadata metadata = jpegWriter.getDefaultImageMetadata(
+                    enforceRGBFor3Channels ? null : imageTypeSpecifier,
+                    writeParam);
+            // - Important! imageType = null necessary for RGB, in another case, setDestinationType will be ignored!
 
-        final ImageWriteParam writeParam = jpegWriter.getDefaultWriteParam();
-        writeParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-        writeParam.setCompressionType("JPEG");
-        writeParam.setCompressionQuality((float) quality);
-        final ImageTypeSpecifier imageTypeSpecifier = new ImageTypeSpecifier(image);
-        if (enforceRGBFor3Channels) {
-            writeParam.setDestinationType(imageTypeSpecifier);
-            // - Important! It informs getDefaultImageMetadata to add Adobe and SOF markers
-            // that are detected by JPEGImageWriter and leads to correct outCsType = JPEG.JCS_RGB
-        }
-        final IIOMetadata metadata = jpegWriter.getDefaultImageMetadata(
-                enforceRGBFor3Channels ? null : imageTypeSpecifier,
-                writeParam);
-        // - Important! imageType = null necessary for RGB, in another case, setDestinationType will be ignored!
-
-        final IIOImage iioImage = new IIOImage(image, null, metadata);
-        // - metadata necessary (with necessary markers)
-        try {
-            jpegWriter.write(null, iioImage, writeParam);
-        } finally {
-            jpegWriter.dispose();
+            final IIOImage iioImage = new IIOImage(image, null, metadata);
+            // - metadata necessary (with necessary markers)
+            try {
+                jpegWriter.write(null, iioImage, writeParam);
+            } finally {
+                jpegWriter.dispose();
+            }
         }
     }
 

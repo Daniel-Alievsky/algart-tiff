@@ -297,7 +297,7 @@ public class LZWCodec implements TiffCodec {
         return result;
     }
 
-    public byte[] decompress(byte[] data, Options options) throws TiffException {
+    public byte[] decompress(byte[] data, Options options) throws IOException {
         if (USE_TWELVE_MONKEY_DECODER) {
             return decompressViaTwelveMonkey(data, options);
         }
@@ -527,34 +527,28 @@ public class LZWCodec implements TiffCodec {
     }
 
     // Bad idea: does not work well on many images
-    private byte[] decompressViaTwelveMonkey(byte[] data, Options options) throws TiffException {
+    private byte[] decompressViaTwelveMonkey(byte[] data, Options options) throws IOException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
-        try {
-            final ByteArrayInputStream compressedDataStream = new ByteArrayInputStream(data);
-            final boolean oldStyle = LZWDecoderAdapted.isOldBitReversedStream(compressedDataStream);
+        final ByteArrayInputStream compressedDataStream = new ByteArrayInputStream(data);
+        final boolean oldStyle = LZWDecoderAdapted.isOldBitReversedStream(compressedDataStream);
 
-            LZWDecoderAdapted decoder = LZWDecoderAdapted.create(oldStyle);
-            if (oldStyle) {
-                options.setReport(new LZWCodecReport().setTiff50Style(true));
-            }
-
-            final byte[] output = new byte[options.getMaxUnpackedSizeInBytes()];
-            final ByteBuffer buffer = ByteBuffer.wrap(output);
-
-            decoder.decode(compressedDataStream, buffer);
-
-            if (RETURN_ONLY_ACTUALLY_DECOMPRESSED_BYTES && buffer.position() != output.length) {
-                return Arrays.copyOf(output, buffer.position());
-                // For general-cmm-error.tif from TwelveMonkey test set, the output buffer is not completely filled,
-                // and it leads to partial data in TiffUnpacking.unpackTiffBitsAndInvertValues
-            }
-
-            return output;
-
-        } catch (IOException e) {
-            throw e instanceof TiffException tiffException ? tiffException : new TiffException(e);
-            // - last variant is very improbable
+        LZWDecoderAdapted decoder = LZWDecoderAdapted.create(oldStyle);
+        if (oldStyle) {
+            options.setReport(new LZWCodecReport().setTiff50Style(true));
         }
+
+        final byte[] output = new byte[options.getMaxUnpackedSizeInBytes()];
+        final ByteBuffer buffer = ByteBuffer.wrap(output);
+
+        decoder.decode(compressedDataStream, buffer);
+
+        if (RETURN_ONLY_ACTUALLY_DECOMPRESSED_BYTES && buffer.position() != output.length) {
+            return Arrays.copyOf(output, buffer.position());
+            // For general-cmm-error.tif from TwelveMonkey test set, the output buffer is not completely filled,
+            // and it leads to partial data in TiffUnpacking.unpackTiffBitsAndInvertValues
+        }
+
+        return output;
     }
 }

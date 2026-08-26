@@ -38,7 +38,7 @@ import java.util.Objects;
 public class LZMACodec implements TiffCodec {
 
     @Override
-    public byte[] compress(byte[] data, Options options) {
+    public byte[] compress(byte[] data, Options options) throws IOException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
 
@@ -57,14 +57,12 @@ public class LZMACodec implements TiffCodec {
         try (XZOutputStream out = new XZOutputStream(outputStream, lzmaOptions, XZ.CHECK_NONE)) {
             out.write(data);
             out.finish();
-        } catch (IOException e) {
-            throw new RuntimeException("LZMA2 compression failed", e);
         }
         return outputStream.toByteArray();
     }
 
     @Override
-    public byte[] decompress(byte[] data, Options options) throws TiffException {
+    public byte[] decompress(byte[] data, Options options) throws IOException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
 
@@ -78,8 +76,6 @@ public class LZMACodec implements TiffCodec {
             return outputStream.toByteArray();
         } catch (CorruptedInputException e) {
             throw new TiffException("Invalid TIFF format: broken LZMA/XZ data", e);
-        } catch (IOException e) {
-            throw new TiffException("Invalid TIFF format: error decompressing LZMA/XZ tile/strip", e);
         }
     }
 }
