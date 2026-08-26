@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.codecs;
 
-import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffIO;
 import net.algart.matrices.tiff.samples.TiffSampleType;

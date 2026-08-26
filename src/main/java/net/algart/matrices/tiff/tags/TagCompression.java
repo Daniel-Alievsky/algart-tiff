@@ -110,7 +110,7 @@ public enum TagCompression {
 
 
     /**
-     * JBIG B&W bi-level compression (type 9).
+     * JBIG B&amp;W bi-level compression (type 9).
      * Not supported in the current version.
      */
     JBIG_BW(9, "JBIG B&W", null),

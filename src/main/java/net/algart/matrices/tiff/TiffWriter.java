@@ -1498,7 +1498,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * <p>Note: this method forcibly <b>removes</b> tags
      * {@link Tags#SUB_IFD SubIFD} = {@value Tags#SUB_IFD},
      * {@link Tags#EXIF_IFD Exif IFD} = {@value Tags#EXIF_IFD},
-     * {@link Tags#GPS_IFD GPS information} = {@value Tags#GPS_IFD GPS} and
+     * {@link Tags#GPS_IFD GPS information} = {@value Tags#GPS_IFD} and
      * {@link Tags#INTEROPERABILITY_IFD interoperability IFD} = {@value Tags#INTEROPERABILITY_IFD},
      * because this class does not support writing sub-IFDs or linked IFDs.
      * If you still need to construct a TIFF with such tags, you should use

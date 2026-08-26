@@ -29,7 +29,6 @@ import net.algart.io.MatrixIO;
 import net.algart.math.functions.RectangularFunc;
 import net.algart.matrices.scanning.ConnectedObjectScanner;
 import net.algart.matrices.scanning.ConnectivityType;
-import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
 

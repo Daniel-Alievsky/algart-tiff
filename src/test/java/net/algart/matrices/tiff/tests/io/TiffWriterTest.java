@@ -40,7 +40,6 @@ import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
 import org.scijava.Context;
-import org.scijava.io.handle.DataHandle;
 
 import java.awt.*;
 import java.io.IOException;

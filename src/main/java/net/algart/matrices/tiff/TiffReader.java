@@ -580,9 +580,9 @@ public non-sealed class TiffReader extends TiffIO {
      *
      * <p>In the current version, it is equivalent to:
      * <pre>
-     *     ifd.{@link TiffIFD#isLowLevelBitsProcessing() isLowLevelBitsProcessing()} &&
-     *     !ifd.{@link TiffIFD#isFloatingPoint() isFloatingPoint()} &&
-     *     !ifd.{@link TiffIFD#isBitsPerSampleDirectlySupported() isBitsPerSampleDirectlySupported()} &&
+     *     ifd.{@link TiffIFD#isLowLevelBitsProcessing() isLowLevelBitsProcessing()} &amp;&amp;
+     *     !ifd.{@link TiffIFD#isFloatingPoint() isFloatingPoint()} &amp;&amp;
+     *     !ifd.{@link TiffIFD#isBitsPerSampleDirectlySupported() isBitsPerSampleDirectlySupported()} &amp;&amp;
      *     (photometric == null || photometric.{@link TagPhotometric#isRescalableIntensity() isRescalableIntensity()})
      * </pre>
      * where

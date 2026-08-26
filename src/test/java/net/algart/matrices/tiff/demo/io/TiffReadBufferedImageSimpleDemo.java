@@ -25,7 +25,6 @@
 package net.algart.matrices.tiff.demo.io;
 
 import net.algart.matrices.tiff.TiffReader;
-import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;

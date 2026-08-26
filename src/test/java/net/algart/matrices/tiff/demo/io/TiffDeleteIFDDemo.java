@@ -24,14 +24,11 @@
 
 package net.algart.matrices.tiff.demo.io;
 
-import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Set;
-import java.util.function.IntPredicate;
 
 public class TiffDeleteIFDDemo {
     public static void main(String[] args) throws IOException {
