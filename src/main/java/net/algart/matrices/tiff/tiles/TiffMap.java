@@ -1552,6 +1552,7 @@ public sealed class TiffMap permits TiffIOMap {
         Objects.requireNonNull(color, "Null color");
         float[] components = color.getRGBComponents(null);
         // - components[3] will be 1.0 for usual colors without alpha-channel
+        assert components.length == 4 : "getRGBComponents(null) must return float[4]";
         final double[] filler = new double[components.length];
         for (int i = 0; i < components.length; i++) {
             filler[i] = scaleToMaxValue ? components[i] * maxUnsignedValue : components[i];

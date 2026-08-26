@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="TiffWriterTest PNG 16-bit sparse (Philips-like)" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.tests.io.TiffWriterTest" />
+    <module name="algart-tiff" />
+    <option name="PROGRAM_PARAMETERS" value="-allowMissing -color -alpha -quality=0.2 -tiled /tmp/test.tiff uint16 5 PNG 300 100 500 400 5" />
+    <option name="VM_PARAMETERS" value="-ea -esa -Dnet.algart.matrices.tiff.timing=true -Djava.util.logging.config.file=additional/logging.properties" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

@@ -285,7 +285,7 @@ public class JPEG2000Codec implements TiffCodec {
             throw new UnsupportedTiffFormatException("JPEG-2000 compression for this format is not supported");
         }
 
-        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
         // NB: Construct BufferedImages manually, rather than using
         // AWTImages.makeImage. The AWTImages.makeImage methods construct
@@ -310,17 +310,17 @@ public class JPEG2000Codec implements TiffCodec {
             // due to integer bit-shift overflow (1 << ntdepth[0]) in calcMixedBitDepths and other jai-imageio methods
         };
 
-        writeImageWithCorrectExceptions(out, img, jpeg2000Options);
-        return out.toByteArray();
+        writeImageWithCorrectExceptions(outputStream, img, jpeg2000Options);
+        return outputStream.toByteArray();
     }
 
     @SuppressWarnings("removal")
     private static void writeImageWithCorrectExceptions(
-            ByteArrayOutputStream out,
+            ByteArrayOutputStream outputStream,
             BufferedImage img,
             JPEG2000Options jpeg2000Options) throws IOException {
         try {
-            writeImage(out, img, jpeg2000Options);
+            writeImage(outputStream, img, jpeg2000Options);
         } catch (ThreadDeath e) {
             // - ThreadDeath is still used in jai-imageio-jpeg2000 1.4.0
             throw new TiffException("Cannot compress JPEG-2000 data", e);
@@ -385,9 +385,10 @@ public class JPEG2000Codec implements TiffCodec {
 //        return rtn;
     }
 
-    private static void writeImage(OutputStream out, BufferedImage img, JPEG2000Options options) throws IOException {
+    private static void writeImage(OutputStream outputStream, BufferedImage img, JPEG2000Options options)
+            throws IOException {
         final J2KImageWriter writer = new J2KImageWriter(null);
-        try (final ImageOutputStream ios = new MemoryCacheImageOutputStream(out)) {
+        try (final ImageOutputStream ios = new MemoryCacheImageOutputStream(outputStream)) {
             // - Important: this codec is implemented for writing separate tiles, which SHOULD be not too large
             // to be located in memory. For comparison, other codecs like DeflateCodec always work in memory.
             writer.setOutput(ios);
@@ -419,9 +420,9 @@ public class JPEG2000Codec implements TiffCodec {
         }
     }
 
-    private static Raster readRaster(InputStream in, JPEG2000Options options) throws IOException {
+    private static Raster readRaster(InputStream inputStream, JPEG2000Options options) throws IOException {
         final J2KImageReader reader = new J2KImageReader(null);
-        try (final ImageInputStream iis = new MemoryCacheImageInputStream(in)) {
+        try (final ImageInputStream iis = new MemoryCacheImageInputStream(inputStream)) {
             reader.setInput(iis, false, true);
             final J2KImageReadParam param = (J2KImageReadParam) reader.getDefaultReadParam();
             if (options.resolution != null) {

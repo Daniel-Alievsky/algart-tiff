@@ -145,14 +145,14 @@ public class JPEGDecoding {
      * Also reads metadata (but not thumbnails).
      */
     public static ImageData readJPEG(
-            InputStream in,
+            InputStream inputStream,
             Dimension sizes,
             TagPhotometric declaredColorSpace,
             int numberOfChannels,
             boolean littleEndian) throws IOException {
         try (final ImageInputStream iis = USE_MEMORY_CACHE ?
-                new MemoryCacheImageInputStream(in) :
-                ImageIO.createImageInputStream(in)) {
+                new MemoryCacheImageInputStream(inputStream) :
+                ImageIO.createImageInputStream(inputStream)) {
             final ImageReader reader = tryToFindImageReader(iis);
             if (reader == null) {
                 return null;

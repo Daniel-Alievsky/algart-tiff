@@ -170,9 +170,9 @@ public class OldJPEGCodec implements TiffCodec {
         final int height = options.getHeight();
 //        System.out.printf("%x %x %x %x ...%n", raw[0], raw[1], raw[2], raw[3]);
 
-        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            out.write(0xFF);
-            out.write(JPEGDecoding.SOI_BYTE);
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            outputStream.write(0xFF);
+            outputStream.write(JPEGDecoding.SOI_BYTE);
 
             // According to TIFF Supplement 2 (Old-style JPEG), tables can be stored in two ways:
             // 1. As a single block pointed to by JPEGInterchangeFormat (Tag 513). This block
@@ -238,7 +238,7 @@ public class OldJPEGCodec implements TiffCodec {
                             "Cannot decode old-style JPEG: JPEGInterchangeFormat does not contain " +
                                     "necessary Start-Of-Frame (SOF) marker");
                 }
-                out.write(interchange, startOffset, interchange.length - startOffset);
+                outputStream.write(interchange, startOffset, interchange.length - startOffset);
                 if (!markers.hasSOS()) {
                     // - this is possible in Wang TIFF files, containing SOS in another place
                     // (the beginning of the 1st strip);
@@ -249,9 +249,9 @@ public class OldJPEGCodec implements TiffCodec {
                                 "uses non-baseline format");
                     }
                     report.setSyntheticSOS(true);
-                    writeSOS(out, samplesPerPixel, markers);
+                    writeSOS(outputStream, samplesPerPixel, markers);
                 }
-                return finishJPEG(out, raw, true);
+                return finishJPEG(outputStream, raw, true);
             } else {
                 if (jpegProc == 14) {
                     throw new UnsupportedTiffFormatException(
@@ -260,31 +260,31 @@ public class OldJPEGCodec implements TiffCodec {
                 report.setBasedOnTables(true);
                 final byte[][] qTables = readJpegQTables(ifd, stream);
                 for (int i = 0; i < qTables.length; i++) {
-                    writeDQT(out, i, qTables[i]);
+                    writeDQT(outputStream, i, qTables[i]);
                 }
                 final byte[][] dcTables = readJpegDCTables(ifd, stream);
                 for (int i = 0; i < dcTables.length; i++) {
-                    writeDHT(out, DHT_DC_CLASS, i, dcTables[i]);
+                    writeDHT(outputStream, DHT_DC_CLASS, i, dcTables[i]);
                 }
                 final byte[][] acTables = readJpegACTables(ifd, stream);
                 for (int i = 0; i < acTables.length; i++) {
-                    writeDHT(out, DHT_AC_CLASS, i, acTables[i]);
+                    writeDHT(outputStream, DHT_AC_CLASS, i, acTables[i]);
                 }
-                writeSOF0(out, ifd, height, width, samplesPerPixel);
-                writeSOS(out, samplesPerPixel, null);
-                return finishJPEG(out, raw, false);
+                writeSOF0(outputStream, ifd, height, width, samplesPerPixel);
+                writeSOS(outputStream, samplesPerPixel, null);
+                return finishJPEG(outputStream, raw, false);
             }
         }
     }
 
-    private static byte[] finishJPEG(ByteArrayOutputStream out, byte[] raw, boolean interchange) {
+    private static byte[] finishJPEG(ByteArrayOutputStream outputStream, byte[] raw, boolean interchange) {
         int rawOffset = interchange ? sosOffset(raw) : 0;
         if (rawOffset < raw.length) {
-            out.write(raw, rawOffset, raw.length - rawOffset);
+            outputStream.write(raw, rawOffset, raw.length - rawOffset);
         }
-        out.write(0xFF);
-        out.write(JPEGDecoding.EOI_BYTE);
-        return out.toByteArray();
+        outputStream.write(0xFF);
+        outputStream.write(JPEGDecoding.EOI_BYTE);
+        return outputStream.toByteArray();
     }
 
     private static int sosOffset(byte[] raw) {

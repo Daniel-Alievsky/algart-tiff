@@ -521,7 +521,8 @@ public class TiffWriterTest {
         final int sizeY = tile.getSizeY();
         final Color color = samplesPerPixel == 1 ?
                 Color.GRAY :
-                new Color(248, 247, 186);
+                new Color(248, 247, 186, 0);
+        // - but alpha will be ignored if we have only 3 channels
         final double[] filler = TiffMap.channelValues(color, samplesPerPixel);
         return switch (tile.sampleType()) {
             case BIT -> {

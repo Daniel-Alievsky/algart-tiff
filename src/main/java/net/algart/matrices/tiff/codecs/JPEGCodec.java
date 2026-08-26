@@ -134,7 +134,7 @@ public class JPEGCodec extends AWTCodec implements TiffCodec.Timing {
         }
         long t1 = timing ? System.nanoTime() : 0;
 
-        final ByteArrayOutputStream output = new ByteArrayOutputStream();
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         final BufferedImage image = AWTImages.makeImage(
                 data, options.getWidth(), options.getHeight(), samplesPerPixel,
                 options.isInterleaved(),
@@ -149,8 +149,8 @@ public class JPEGCodec extends AWTCodec implements TiffCodec.Timing {
         // (for comparison, the maximal quality in JPEG-2000 is Double.MAX_VALUE)
         final boolean enforceRGBFor3Channels = photometric == TagPhotometric.RGB;
         // - for 1 channel, this flag is ignored
-        JPEGEncoding.writeJPEG(image, output, enforceRGBFor3Channels, jpegQuality);
-        byte[] result = output.toByteArray();
+        JPEGEncoding.writeJPEG(image, outputStream, enforceRGBFor3Channels, jpegQuality);
+        byte[] result = outputStream.toByteArray();
         long t3 = timing ? System.nanoTime() : 0;
         timeBridge += t2 - t1;
         timeMain += t3 - t2;
@@ -166,12 +166,12 @@ public class JPEGCodec extends AWTCodec implements TiffCodec.Timing {
         report.setTiffPhotometric(options.getPhotometric());
         long t1 = timing ? System.nanoTime() : 0;
         JPEGDecoding.ImageData imageData;
-        try (InputStream input = new ByteArrayInputStream(data)) {
+        try (InputStream inputStream = new ByteArrayInputStream(data)) {
             // First of all, we SHOULD try using the standard ImageReader from ImageIO.getImageReaders().
             // Depending on installed libraries, it may be much more intelligent than our codecs,
             // such as LosslessJPEGCodec. And only if it fails, we will try something else.
             imageData = JPEGDecoding.readJPEG(
-                    input,
+                    inputStream,
                     RESTRICT_READING_TOO_LARGE_STRIPS && !options.isTiled() ?
                             new Dimension(options.getWidth(), options.getHeight()) :
                             null,

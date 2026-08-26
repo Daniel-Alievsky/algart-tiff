@@ -103,21 +103,21 @@ public class TiffCustomCodecDemo {
     }
 
     private static byte[] myEncode(byte[] data) throws TiffException {
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         try {
-            try (var gzip = new GZIPOutputStream(output)) {
+            try (var gzip = new GZIPOutputStream(outputStream)) {
                 gzip.write(data);
             }
         } catch (IOException e) {
             throw new TiffException(e);
         }
-        byte[] result = output.toByteArray();
+        byte[] result = outputStream.toByteArray();
         LOG.log(LOG_LEVEl, data.length + " bytes compressed BY CUSTOM CODEC to " + result.length);
         return result;
     }
 
     private static byte[] myDecode(byte[] data) throws TiffException {
-        byte[] result;
+        final byte[] result;
         try (var gzip = new GZIPInputStream(new ByteArrayInputStream(data))) {
             result = gzip.readAllBytes();
         } catch (IOException e) {

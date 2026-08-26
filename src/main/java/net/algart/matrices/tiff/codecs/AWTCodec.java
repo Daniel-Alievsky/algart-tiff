@@ -28,10 +28,7 @@ import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import net.algart.matrices.tiff.awt.AWTImages;
 
-import javax.imageio.ImageIO;
-import javax.imageio.ImageReadParam;
-import javax.imageio.ImageReader;
-import javax.imageio.ImageWriter;
+import javax.imageio.*;
 import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.ImageOutputStream;
 import javax.imageio.stream.MemoryCacheImageInputStream;
@@ -48,6 +45,16 @@ import java.util.Objects;
 public class AWTCodec implements TiffCodec {
     static final boolean RESTRICT_READING_TOO_LARGE_STRIPS = true;
     // - should be true for normal processing some old-style JPEG files
+
+    private final String formatName;
+
+    public AWTCodec() {
+        this.formatName = null;
+    }
+
+    public AWTCodec(String formatName) {
+        this.formatName = formatName;
+    }
 
     @Override
     public byte[] compress(byte[] data, Options options) throws IOException {
@@ -69,23 +76,24 @@ public class AWTCodec implements TiffCodec {
             default -> throw new TiffException("Compression for " + bitsPerSample + "-bit samples is not supported");
             // - Should be checked also in toDataBuffer
         };
-        final ByteArrayOutputStream output = new ByteArrayOutputStream();
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         final ImageWriter imageWriter = tryToFindImageWriter(options);
         if (imageWriter == null) {
             throw new UnsupportedTiffFormatException("Compression" +
                     (options.getCompression() == null ? "" : " \"" + options.getCompression().prettyName() + "\"") +
                     " is not supported");
         }
-        try (ImageOutputStream ios = new MemoryCacheImageOutputStream(output)) {
+        try (ImageOutputStream ios = new MemoryCacheImageOutputStream(outputStream)) {
             // - Important: this codec is implemented for writing separate tiles, which SHOULD be not too large
             // to be located in memory. For comparison, other codecs like DeflateCodec always work in memory.
+            imageWriter.setOutput(ios);
             try {
                 imageWriter.write(image);
             } finally {
                 imageWriter.dispose();
             }
         }
-        return output.toByteArray();
+        return outputStream.toByteArray();
     }
 
     @Override
@@ -95,10 +103,10 @@ public class AWTCodec implements TiffCodec {
         if (data.length == 0) {
             throw new IllegalArgumentException("Empty data array");
         }
-        final InputStream input = new ByteArrayInputStream(data);
+        final InputStream inputStream = new ByteArrayInputStream(data);
         boolean littleEndian = options.isLittleEndian();
         final BufferedImage image;
-        try (final ImageInputStream iis = new MemoryCacheImageInputStream(input)) {
+        try (final ImageInputStream iis = new MemoryCacheImageInputStream(inputStream)) {
             // - instead of createImageInputStream, which creates temporary files on disk;
             // we don't use try-with-resources to avoid necessity to catch close()
             final ImageReader reader = tryToFindImageReader(iis);
@@ -118,19 +126,46 @@ public class AWTCodec implements TiffCodec {
     }
 
     protected ImageReader tryToFindImageReader(ImageInputStream iis) {
-        Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
+        final Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
         return readers.hasNext() ? readers.next() : null;
     }
 
     /**
-     * Default implementation returns {@code null}, that leads to throwing {@link IOException}
-     * "Compression is not supported".
+     * Default implementation returns the first writer returned by
+     * {@code ImageIO.getImageWritersByFormatName({@link #formatName(Options)})}
+     * or {@code null} if that method returned no writers
+     * or the {@link #formatName(Options) format name} is {@code null}.
+     * The {@code null} result leads to an exception "Compression is not supported".
      *
-     * @param options options to be used during decompression.
-     * @return an image writer used by this codec for compression.
+     * @param options options to be used during compression.
+     * @return an image writer used by this codec for compression,
+     * or {@code null} if this codec does not support writing.
      */
     protected ImageWriter tryToFindImageWriter(Options options) {
-        return null;
+        final String formatName = formatName(options);
+        if (formatName == null) {
+            return null;
+        }
+        Iterator<ImageWriter> iterator = ImageIO.getImageWritersByFormatName(formatName);
+        if (!iterator.hasNext()) {
+            return null;
+        }
+        return iterator.next();
+    }
+
+    /**
+     * Returns the format name specified in the {@link #AWTCodec(String)} constructor,
+     * or {@code null} when using the no-arguments constructor.
+     *
+     * <p>It will be passed to {@code ImageIO.getImageWritersByFormatName(formatName)};
+     * a {@code null} value means that writing is not supported.
+     *
+     * @param options options to be used during compression.
+     * @return the format name (such as {@code "jpeg"} or {@code "png"}),
+     * or {@code null} if this codec instance does not support writing.
+     */
+    protected String formatName(Options options) {
+        return formatName;
     }
 
     public static ImageReadParam buildReadParameters(Options options, ImageReader reader) {

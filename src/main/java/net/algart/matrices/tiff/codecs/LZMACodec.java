@@ -53,10 +53,10 @@ public class LZMACodec implements TiffCodec {
             }
         }
 
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        try (XZOutputStream out = new XZOutputStream(outputStream, lzmaOptions, XZ.CHECK_NONE)) {
-            out.write(data);
-            out.finish();
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try (XZOutputStream stream = new XZOutputStream(outputStream, lzmaOptions, XZ.CHECK_NONE)) {
+            stream.write(data);
+            stream.finish();
         }
         return outputStream.toByteArray();
     }
@@ -66,11 +66,11 @@ public class LZMACodec implements TiffCodec {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
 
-        try (XZInputStream in = new XZInputStream(new ByteArrayInputStream(data))) {
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            byte[] buffer = new byte[65536];
+        try (XZInputStream stream = new XZInputStream(new ByteArrayInputStream(data))) {
+            final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            final byte[] buffer = new byte[65536];
             int len;
-            while ((len = in.read(buffer)) != -1) {
+            while ((len = stream.read(buffer)) != -1) {
                 outputStream.write(buffer, 0, len);
             }
             return outputStream.toByteArray();

@@ -43,16 +43,16 @@ public class JPEGEncoding {
      */
     public static void writeJPEG(
             BufferedImage image,
-            OutputStream out,
+            OutputStream outputStream,
             boolean enforceRGBFor3Channels,
             double quality) throws IOException {
         Objects.requireNonNull(image, "Null image");
-        Objects.requireNonNull(out, "Null output stream");
+        Objects.requireNonNull(outputStream, "Null output stream");
         // - note: declaredColorSpace can be also BLACK_IS_ZERO, for example, for 1-channel JPEG;
         // null is also allowed, but very improbable
         try (final ImageOutputStream ios = JPEGDecoding.USE_MEMORY_CACHE ?
-                new MemoryCacheImageOutputStream(out) :
-                ImageIO.createImageOutputStream(out)) {
+                new MemoryCacheImageOutputStream(outputStream) :
+                ImageIO.createImageOutputStream(outputStream)) {
             final ImageWriter jpegWriter = getJPEGWriter();
             jpegWriter.setOutput(ios);
 
@@ -89,5 +89,4 @@ public class JPEGEncoding {
         }
         return result;
     }
-
 }
